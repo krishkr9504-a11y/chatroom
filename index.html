@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Wire — Private Line</title>
+<style>
+  :root{
+    --ink: #12181f;
+    --ink-2: #1c2530;
+    --ink-3: #232e3a;
+    --paper: #eee7d8;
+    --paper-dim: #d9d0ba;
+    --wire: #c9762a;
+    --wire-dim: #8a5420;
+    --ok: #4f9d69;
+    --line: rgba(238,231,216,0.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Courier New', ui-monospace, monospace;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100dvh;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201,118,42,0.08), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(201,118,42,0.06), transparent 40%);
+    overscroll-behavior:none;
+  }
+
+  /* ---------- Landing screen ---------- */
+  #landing{
+    width:100%;
+    max-width:420px;
+    padding:40px 32px;
+    text-align:center;
+  }
+  .brand{
+    font-size:13px;
+    letter-spacing:5px;
+    color: var(--wire);
+    margin-bottom:6px;
+    text-transform:uppercase;
+  }
+  .brand::before{ content:"◈ "; }
+  h1{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight:400;
+    font-size:32px;
+    margin:0 0 6px;
+    letter-spacing:0.5px;
+  }
+  .sub{
+    color: var(--paper-dim);
+    font-size:13px;
+    margin-bottom:36px;
+    line-height:1.6;
+  }
+  .field{
+    text-align:left;
+    margin-bottom:18px;
+  }
+  .field label{
+    display:block;
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color: var(--wire);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    background: var(--ink-2);
+    border:1px solid var(--line);
+    color: var(--paper);
+    font-family:inherit;
+    font-size:16px;
+    padding:12px 14px;
+    border-radius:2px;
+    outline:none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus{
+    border-color: var(--wire);
+  }
+  .hint{
+    font-size:11px;
+    color: var(--paper-dim);
+    margin-top:6px;
+    line-height:1.5;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+  }
+  #enterBtn{
+    width:100%;
+    padding:13px;
+    margin-top:8px;
+    background: var(--wire);
+    border:none;
+    color: var(--ink);
+    font-weight:bold;
+    font-size:14px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    border-radius:2px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  #enterBtn:hover{ background:#dd8938; }
+  #enterBtn:active{ transform: scale(0.98); }
+  #landingError{
+    color:#e08585;
+    font-size:12px;
+    margin-top:14px;
+    min-height:16px;
+  }
+
+  /* ---------- Chat screen ---------- */
+  #chatScreen{
+    display:none;
+    width:100%;
+    max-width:520px;
+    height:100dvh;
+    max-height:800px;
+    background: var(--ink-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    flex-direction:column;
+  }
+  #chatHeader{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    background: rgba(0,0,0,0.15);
+    flex-shrink:0;
+    gap:10px;
+  }
+  #chatHeader .roomInfo{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  #chatHeader .roomLabel{
+    font-size:10px; letter-spacing:2px; color:var(--wire); text-transform:uppercase;
+  }
+  #chatHeader .roomCode{ font-size:14px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #peopleLine{
+    font-size:11px;
+    color: var(--paper-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-top:2px;
+  }
+  .statusDot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--ok);
+    box-shadow: 0 0 6px var(--ok);
+    display:inline-block;
+    flex-shrink:0;
+  }
+  .statusDot.off{
+    background:#5a6472;
+    box-shadow:none;
+  }
+  #leaveBtn{
+    background:none; border:1px solid var(--line); color:var(--paper-dim);
+    font-size:11px; padding:8px 12px; border-radius:2px; letter-spacing:1px;
+    flex-shrink:0;
+  }
+  #leaveBtn:hover{ border-color:var(--wire); color:var(--wire); }
+
+  #messages{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .msg{
+    max-width:78%;
+    padding:10px 13px;
+    border-radius:3px;
+    font-size:15px;
+    line-height:1.5;
+    word-wrap:break-word;
+    position:relative;
+    animation: fadeIn 0.15s ease-out;
+  }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .msg .meta{
+    font-size:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    opacity:0.6;
+    margin-bottom:4px;
+  }
+  .msg .seenTag{
+    font-size:10px;
+    opacity:0.55;
+    margin-top:4px;
+    text-align:right;
+  }
+  .msg.mine{
+    align-self:flex-end;
+    background: var(--wire-dim);
+    color: var(--paper);
+    border-bottom-right-radius:0;
+  }
+  .msg.theirs{
+    align-self:flex-start;
+    background: var(--ink-3);
+    border-bottom-left-radius:0;
+  }
+  .msg.system{
+    align-self:center;
+    background:none;
+    color: var(--paper-dim);
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    text-align:center;
+    max-width:90%;
+  }
+
+  #typingLine{
+    height:22px;
+    padding:0 16px;
+    font-size:12px;
+    color: var(--paper-dim);
+    font-style:italic;
+    display:flex;
+    align-items:center;
+    flex-shrink:0;
+  }
+
+  #inputBar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+    background: rgba(0,0,0,0.15);
+    flex-shrink:0;
+    position:relative;
+  }
+  #emojiBtn{
+    background:none;
+    border:1px solid var(--line);
+    border-radius:2px;
+    font-size:18px;
+    width:42px;
+    height:42px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #emojiBtn:hover{ border-color: var(--wire); }
+  #msgInput{
+    flex:1;
+    min-width:0;
+    background: var(--ink);
+    border:1px solid var(--line);
+    color: var(--paper);
+    font-family:inherit;
+    font-size:16px;
+    padding:11px 13px;
+    border-radius:2px;
+    outline:none;
+  }
+  #msgInput:focus{ border-color: var(--wire); }
+  #sendBtn{
+    background: var(--wire);
+    border:none;
+    color: var(--ink);
+    font-weight:bold;
+    padding:0 16px;
+    height:42px;
+    border-radius:2px;
+    font-size:13px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    flex-shrink:0;
+  }
+  #sendBtn:hover{ background:#dd8938; }
+  #sendBtn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  #emojiPanel{
+    display:none;
+    position:absolute;
+    bottom:100%;
+    left:12px;
+    right:12px;
+    background: var(--ink-3);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px;
+    margin-bottom:8px;
+    grid-template-columns:repeat(8, 1fr);
+    gap:4px;
+    max-height:180px;
+    overflow-y:auto;
+  }
+  #emojiPanel.open{ display:grid; }
+  #emojiPanel button{
+    background:none;
+    border:none;
+    font-size:20px;
+    padding:6px 0;
+    border-radius:3px;
+  }
+  #emojiPanel button:hover{ background: rgba(238,231,216,0.1); }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:3px; }
+
+  /* ---------- Mobile: full-bleed ---------- */
+  @media (max-width: 600px){
+    body{ align-items:stretch; justify-content:stretch; }
+    #landing{ margin:auto; }
+    #chatScreen{
+      max-width:100%;
+      max-height:100dvh;
+      height:100dvh;
+      border-radius:0;
+      border:none;
+    }
+    .msg{ max-width:85%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LANDING SCREEN ============ -->
+<div id="landing">
+  <div class="brand">Wire</div>
+  <h1>A private line</h1>
+  <div class="sub">No sign-up. Give the same room code to one other person — only the two of you who know it can read what's said.</div>
+
+  <div class="field">
+    <label for="nameInput">Your name</label>
+    <input id="nameInput" type="text" maxlength="24" placeholder="e.g. Rahul" autocomplete="off" />
+  </div>
+
+  <div class="field">
+    <label for="roomInput">Room code</label>
+    <input id="roomInput" type="text" maxlength="40" placeholder="e.g. raj-and-priya-2026" autocomplete="off" />
+    <div class="hint">Make one up and share it privately with the other person — via WhatsApp, in person, however. Anyone who has this exact code can enter this line.</div>
+  </div>
+
+  <button id="enterBtn">Open the line</button>
+  <div id="landingError"></div>
+</div>
+
+<!-- ============ CHAT SCREEN ============ -->
+<div id="chatScreen">
+  <div id="chatHeader">
+    <div class="roomInfo">
+      <span class="roomLabel">Room</span>
+      <span class="roomCode" id="roomCodeText"></span>
+      <span id="peopleLine"><span class="statusDot off" id="statusDot"></span><span id="peopleText">Connecting...</span></span>
+    </div>
+    <button id="leaveBtn">Leave</button>
+  </div>
+  <div id="messages"></div>
+  <div id="typingLine"></div>
+  <div id="inputBar">
+    <div id="emojiPanel"></div>
+    <button id="emojiBtn" type="button">😊</button>
+    <input id="msgInput" type="text" placeholder="Type a message..." autocomplete="off" />
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat build — simplest for plain HTML, no build tools needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+  // ---------- YOUR FIREBASE CONFIG ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyCXO9xMAiXkPOUopriTDdOH-wDwe40KNKw",
+    authDomain: "mera-chatroom.firebaseapp.com",
+    databaseURL: "https://mera-chatroom-default-rtdb.firebaseio.com",
+    projectId: "mera-chatroom",
+    storageBucket: "mera-chatroom.firebasestorage.app",
+    messagingSenderId: "994909315265",
+    appId: "1:994909315265:web:0344b9a40e4ce8f7f47440"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // ---------- State ----------
+  let myName = "";
+  let myKey = "";
+  let roomCode = "";
+  let messagesRef = null;
+  let presenceRef = null;
+  let typingRef = null;
+  let typingTimer = null;
+  const ownMessageEls = {}; // msgId -> { el, seenTag } — only for messages I sent (to update "Seen")
+
+  // ---------- Helpers ----------
+  function slugifyRoom(raw){
+    return raw.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "");
+  }
+
+  function slugifyKey(raw){
+    // Firebase keys cannot contain . # $ [ ] / — sanitize the name into a safe key
+    return raw.trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_") || "user";
+  }
+
+  // ---------- Landing screen logic ----------
+  const nameInput = document.getElementById("nameInput");
+  const roomInput = document.getElementById("roomInput");
+  const enterBtn = document.getElementById("enterBtn");
+  const landingError = document.getElementById("landingError");
+
+  function tryEnter(){
+    const name = nameInput.value.trim();
+    const room = slugifyRoom(roomInput.value);
+    landingError.textContent = "";
+
+    if(!name){
+      landingError.textContent = "Apna naam daalein.";
+      return;
+    }
+    if(!room){
+      landingError.textContent = "Room code daalein.";
+      return;
+    }
+
+    myName = name;
+    myKey = slugifyKey(name);
+    roomCode = room;
+    enterChat();
+  }
+
+  enterBtn.addEventListener("click", tryEnter);
+  nameInput.addEventListener("keydown", (e) => { if(e.key === "Enter") roomInput.focus(); });
+  roomInput.addEventListener("keydown", (e) => { if(e.key === "Enter") tryEnter(); });
+
+  // ---------- Chat screen elements ----------
+  const landing = document.getElementById("landing");
+  const chatScreen = document.getElementById("chatScreen");
+  const roomCodeText = document.getElementById("roomCodeText");
+  const peopleText = document.getElementById("peopleText");
+  const statusDot = document.getElementById("statusDot");
+  const messagesEl = document.getElementById("messages");
+  const typingLine = document.getElementById("typingLine");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const leaveBtn = document.getElementById("leaveBtn");
+  const emojiBtn = document.getElementById("emojiBtn");
+  const emojiPanel = document.getElementById("emojiPanel");
+
+  const EMOJIS = ["😀","😂","😍","😘","😅","😊","😉","😎","🤔","😢","😭","😡","👍","👎","🙏","👋","❤️","🔥","🎉","✅","😴","🥳","😳","🤗","💀","😇","😜","🙌","💯","👀"];
+
+  function buildEmojiPanel(){
+    emojiPanel.innerHTML = "";
+    EMOJIS.forEach(e => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = e;
+      b.addEventListener("click", () => {
+        msgInput.value += e;
+        msgInput.focus();
+      });
+      emojiPanel.appendChild(b);
+    });
+  }
+  buildEmojiPanel();
+
+  emojiBtn.addEventListener("click", () => {
+    emojiPanel.classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    if(!emojiPanel.contains(e.target) && e.target !== emojiBtn){
+      emojiPanel.classList.remove("open");
+    }
+  });
+
+  function enterChat(){
+    landing.style.display = "none";
+    chatScreen.style.display = "flex";
+    roomCodeText.textContent = roomCode;
+    messagesEl.innerHTML = "";
+    typingLine.textContent = "";
+
+    const roomBase = "rooms/" + roomCode;
+    messagesRef = db.ref(roomBase + "/messages");
+    presenceRef = db.ref(roomBase + "/presence/" + myKey);
+    typingRef = db.ref(roomBase + "/typing/" + myKey);
+    const allPresenceRef = db.ref(roomBase + "/presence");
+    const allTypingRef = db.ref(roomBase + "/typing");
+
+    // ----- Presence: mark myself online, auto-remove when I disconnect -----
+    presenceRef.onDisconnect().remove();
+    presenceRef.set({ name: myName, ts: firebase.database.ServerValue.TIMESTAMP });
+    typingRef.onDisconnect().remove();
+
+    // ----- Listen for who else is connected -----
+    allPresenceRef.on("value", (snapshot) => {
+      const people = [];
+      snapshot.forEach(child => {
+        const val = child.val();
+        if(val && val.name) people.push(val.name);
+      });
+      renderPeople(people);
+    });
+
+    // ----- Listen for typing from the other person -----
+    allTypingRef.on("value", (snapshot) => {
+      let othersTyping = [];
+      snapshot.forEach(child => {
+        if(child.key !== myKey && child.val() && child.val().typing){
+          othersTyping.push(child.val().name);
+        }
+      });
+      if(othersTyping.length){
+        typingLine.textContent = othersTyping.join(", ") + (othersTyping.length > 1 ? " are" : " is") + " typing...";
+      } else {
+        typingLine.textContent = "";
+      }
+    });
+
+    // ----- Listen for messages -----
+    messagesRef.on("child_added", (snapshot) => {
+      renderMessage(snapshot.key, snapshot.val());
+    });
+
+    // ----- Listen for seen updates on my own messages -----
+    messagesRef.on("child_changed", (snapshot) => {
+      updateSeenTag(snapshot.key, snapshot.val());
+    });
+
+    addSystemLine("Line jud gayi. Ho sakta hai doosra insaan abhi na ho — message chhod dijiye.");
+    msgInput.focus();
+  }
+
+  function renderPeople(people){
+    if(people.length <= 1){
+      statusDot.classList.add("off");
+      peopleText.textContent = "Waiting for someone to join...";
+    } else {
+      statusDot.classList.remove("off");
+      peopleText.textContent = people.join(", ") + " online";
+    }
+  }
+
+  function renderMessage(msgId, msg){
+    const div = document.createElement("div");
+    const isMine = msg.name === myName;
+    div.className = "msg " + (isMine ? "mine" : "theirs");
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = msg.name;
+
+    const body = document.createElement("div");
+    body.textContent = msg.text;
+
+    div.appendChild(meta);
+    div.appendChild(body);
+
+    if(isMine){
+      const seenTag = document.createElement("div");
+      seenTag.className = "seenTag";
+      seenTag.textContent = "Sent";
+      div.appendChild(seenTag);
+      ownMessageEls[msgId] = { el: div, seenTag };
+      if(msg.seenBy && Object.keys(msg.seenBy).some(k => k !== myKey)){
+        seenTag.textContent = "Seen";
+      }
+    } else {
+      // Mark this incoming message as seen by me, since the chat is open
+      messagesRef.child(msgId).child("seenBy").child(myKey).set(true);
+    }
+
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function updateSeenTag(msgId, msg){
+    const entry = ownMessageEls[msgId];
+    if(!entry) return;
+    const seenByOthers = msg.seenBy && Object.keys(msg.seenBy).some(k => k !== myKey);
+    entry.seenTag.textContent = seenByOthers ? "Seen" : "Sent";
+  }
+
+  function addSystemLine(text){
+    const div = document.createElement("div");
+    div.className = "msg system";
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function sendMessage(){
+    const text = msgInput.value.trim();
+    if(!text || !messagesRef) return;
+
+    messagesRef.push({
+      name: myName,
+      text: text,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    msgInput.value = "";
+    msgInput.focus();
+    emojiPanel.classList.remove("open");
+    setTypingState(false);
+  }
+
+  function setTypingState(isTyping){
+    if(!typingRef) return;
+    typingRef.set({ name: myName, typing: isTyping });
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  msgInput.addEventListener("keydown", (e) => { if(e.key === "Enter") sendMessage(); });
+
+  msgInput.addEventListener("input", () => {
+    setTypingState(true);
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => setTypingState(false), 1500);
+  });
+
+  function cleanupRoom(){
+    if(messagesRef) messagesRef.off();
+    if(presenceRef){ presenceRef.onDisconnect().cancel(); presenceRef.remove(); }
+    if(typingRef){ typingRef.onDisconnect().cancel(); typingRef.remove(); }
+    messagesRef = null;
+    presenceRef = null;
+    typingRef = null;
+    for(const k in ownMessageEls) delete ownMessageEls[k];
+  }
+
+  leaveBtn.addEventListener("click", () => {
+    cleanupRoom();
+    chatScreen.style.display = "none";
+    landing.style.display = "block";
+    roomInput.value = "";
+    landingError.textContent = "";
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if(presenceRef) presenceRef.remove();
+    if(typingRef) typingRef.remove();
+  });
+</script>
+</body>
+</html>
