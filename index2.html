@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Wire — Private Line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #12181f;
+    --ink-2: #1c2530;
+    --ink-3: #232e3a;
+    --paper: #eee7d8;
+    --paper-dim: #d9d0ba;
+    --wire: #c9762a;
+    --wire-dim: #8a5420;
+    --ok: #4f9d69;
+    --line: rgba(238,231,216,0.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Lora', Georgia, 'Palatino Linotype', serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100dvh;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201,118,42,0.08), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(201,118,42,0.06), transparent 40%);
+    overscroll-behavior:none;
+  }
+
+  /* ---------- Landing screen ---------- */
+  #landing{
+    width:100%;
+    max-width:420px;
+    padding:40px 32px;
+    text-align:center;
+  }
+  .brand{
+    font-size:13px;
+    letter-spacing:5px;
+    color: var(--wire);
+    margin-bottom:6px;
+    text-transform:uppercase;
+  }
+  .brand::before{ content:"◈ "; }
+  h1{
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight:400;
+    font-size:32px;
+    margin:0 0 6px;
+    letter-spacing:0.5px;
+  }
+  .sub{
+    color: var(--paper-dim);
+    font-size:13px;
+    margin-bottom:36px;
+    line-height:1.6;
+  }
+  .field{
+    text-align:left;
+    margin-bottom:18px;
+  }
+  .field label{
+    display:block;
+    font-size:11px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color: var(--wire);
+    margin-bottom:6px;
+  }
+  .field input{
+    width:100%;
+    background: var(--ink-2);
+    border:1px solid var(--line);
+    color: var(--paper);
+    font-family:inherit;
+    font-size:16px;
+    padding:12px 14px;
+    border-radius:2px;
+    outline:none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus{
+    border-color: var(--wire);
+  }
+  .hint{
+    font-size:11px;
+    color: var(--paper-dim);
+    margin-top:6px;
+    line-height:1.5;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+  }
+  #enterBtn{
+    width:100%;
+    padding:13px;
+    margin-top:8px;
+    background: var(--wire);
+    border:none;
+    color: var(--ink);
+    font-weight:bold;
+    font-size:14px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    border-radius:2px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  #enterBtn:hover{ background:#ff8fb3; }
+  #enterBtn:active{ transform: scale(0.98); }
+  #landingError{
+    color:#e08585;
+    font-size:12px;
+    margin-top:14px;
+    min-height:16px;
+  }
+
+  /* ---------- Chat screen ---------- */
+  #chatScreen{
+    display:none;
+    width:100%;
+    max-width:520px;
+    height:100dvh;
+    max-height:800px;
+    background: var(--ink-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    flex-direction:column;
+  }
+  #chatHeader{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    background: rgba(0,0,0,0.15);
+    flex-shrink:0;
+    gap:10px;
+  }
+  #chatHeader .roomInfo{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  #chatHeader .roomLabel{
+    font-size:10px; letter-spacing:2px; color:var(--wire); text-transform:uppercase;
+  }
+  #chatHeader .roomCode{ font-size:14px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #peopleLine{
+    font-size:11px;
+    color: var(--paper-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-top:2px;
+  }
+  .statusDot{
+    width:7px; height:7px; border-radius:50%;
+    background: var(--ok);
+    box-shadow: 0 0 6px var(--ok);
+    display:inline-block;
+    flex-shrink:0;
+  }
+  .statusDot.off{
+    background:#5a6472;
+    box-shadow:none;
+  }
+  #leaveBtn{
+    background:none; border:1px solid var(--line); color:var(--paper-dim);
+    font-size:11px; padding:8px 12px; border-radius:2px; letter-spacing:1px;
+    flex-shrink:0;
+  }
+  #leaveBtn:hover{ border-color:var(--wire); color:var(--wire); }
+
+  #messages{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .msg{
+    max-width:78%;
+    padding:10px 13px;
+    border-radius:3px;
+    font-size:15px;
+    line-height:1.5;
+    word-wrap:break-word;
+    position:relative;
+    animation: fadeIn 0.15s ease-out;
+  }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .msg .meta{
+    font-size:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    opacity:0.6;
+    margin-bottom:4px;
+  }
+  .msg .seenTag{
+    font-size:10px;
+    opacity:0.55;
+    margin-top:4px;
+    text-align:right;
+  }
+  .msg.mine{
+    align-self:flex-end;
+    background: var(--wire-dim);
+    color: var(--paper);
+    border-bottom-right-radius:0;
+  }
+  .msg.theirs{
+    align-self:flex-start;
+    background: var(--ink-3);
+    border-bottom-left-radius:0;
+  }
+  .msg.system{
+    align-self:center;
+    background:none;
+    color: var(--paper-dim);
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    text-align:center;
+    max-width:90%;
+  }
+
+  #typingLine{
+    height:22px;
+    padding:0 16px;
+    font-size:12px;
+    color: var(--paper-dim);
+    font-style:italic;
+    display:flex;
+    align-items:center;
+    flex-shrink:0;
+  }
+
+  #inputBar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+    background: rgba(0,0,0,0.15);
+    flex-shrink:0;
+    position:relative;
+  }
+  #emojiBtn{
+    background:none;
+    border:1px solid var(--line);
+    border-radius:2px;
+    font-size:18px;
+    width:42px;
+    height:42px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  #emojiBtn:hover{ border-color: var(--wire); }
+  #msgInput{
+    flex:1;
+    min-width:0;
+    background: var(--ink);
+    border:1px solid var(--line);
+    color: var(--paper);
+    font-family:inherit;
+    font-size:16px;
+    padding:11px 13px;
+    border-radius:2px;
+    outline:none;
+  }
+  #msgInput:focus{ border-color: var(--wire); }
+  #sendBtn{
+    background: var(--wire);
+    border:none;
+    color: var(--ink);
+    font-weight:bold;
+    padding:0 16px;
+    height:42px;
+    border-radius:2px;
+    font-size:13px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    flex-shrink:0;
+  }
+  #sendBtn:hover{ background:#ff8fb3; }
+  #sendBtn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  #emojiPanel{
+    display:none;
+    position:absolute;
+    bottom:100%;
+    left:12px;
+    right:12px;
+    background: var(--ink-3);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:10px;
+    margin-bottom:8px;
+    grid-template-columns:repeat(8, 1fr);
+    gap:4px;
+    max-height:180px;
+    overflow-y:auto;
+  }
+  #emojiPanel.open{ display:grid; }
+  #emojiPanel button{
+    background:none;
+    border:none;
+    font-size:20px;
+    padding:6px 0;
+    border-radius:3px;
+  }
+  #emojiPanel button:hover{ background: rgba(238,231,216,0.1); }
+
+
+  /* ---------- New features ---------- */
+  .msg{ cursor:pointer; }
+  .msg .quote{ border-left:2px solid var(--wire); background:rgba(0,0,0,0.2); padding:4px 8px; margin-bottom:6px; font-size:12px; opacity:0.85; border-radius:2px; }
+  .msg .quote b{ display:block; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--wire); }
+  .msg .gone{ font-style:italic; opacity:0.55; font-size:13px; }
+  .msg .reacts{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .msg .reacts span{ font-size:12px; background:rgba(0,0,0,0.25); border:1px solid var(--line); border-radius:10px; padding:1px 7px; }
+  .msg .reacts span.me{ border-color:var(--wire); }
+  .msg .acts{ display:none; gap:4px; margin-top:6px; }
+  .msg.sel .acts{ display:flex; }
+  .msg .acts button{ background:rgba(0,0,0,0.25); border:1px solid var(--line); color:var(--paper); border-radius:2px; font-size:14px; padding:3px 8px; }
+  .msg .acts button:hover{ border-color:var(--wire); }
+  #replyBar{ display:none; align-items:center; justify-content:space-between; gap:10px; padding:6px 14px; font-size:12px; color:var(--paper-dim); border-top:1px solid var(--line); background:rgba(0,0,0,0.2); flex-shrink:0; }
+  #replyBar.open{ display:flex; }
+  #replyBar span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #replyBar button{ background:none; border:none; color:var(--wire); font-size:16px; }
+
+
+  /* ---------- Feel: italic, paragraphs, typing, seen ---------- */
+  .msg .txt{ white-space:pre-wrap; font-style:italic; font-size:16px; line-height:1.55; }
+  .msg .meta{ font-style:normal; }
+  .msg .meta i{ font-style:normal; opacity:0.8; letter-spacing:0; margin-left:6px; text-transform:none; }
+  .msg .seenTag{ font-style:normal; letter-spacing:0.3px; }
+  .msg .seenTag.seen{ color:#7fd1a0; opacity:0.95; }
+  #msgInput{ resize:none; font-style:italic; line-height:1.45; max-height:130px; overflow-y:auto; display:block; }
+  #inputBar{ align-items:flex-end; }
+  #typingLine .dots span{ display:inline-block; animation:blink 1.2s infinite; }
+  #typingLine .dots span:nth-child(2){ animation-delay:0.2s; }
+  #typingLine .dots span:nth-child(3){ animation-delay:0.4s; }
+  @keyframes blink{ 0%,60%,100%{opacity:0.2;} 30%{opacity:1;} }
+
+
+  /* ================= LOVE SCENE THEME ================= */
+  :root{ --ink:#1a0b22; --ink-2:#26102f; --ink-3:#341640; --paper:#fff0f4; --paper-dim:#e9c3d2; --wire:#ff6b9a; --wire-dim:#b83a74; --line:rgba(255,200,220,0.2); }
+  body{ background:linear-gradient(180deg,#12061f 0%,#2b0f3a 45%,#6b1f4f 80%,#b0345f 100%) fixed; }
+  #bg{ position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+  #bg .moon{ position:absolute; top:8%; right:12%; width:clamp(60px,12vw,120px); aspect-ratio:1; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#fff7e6,#ffd9e8 60%,#f3a9c6);
+    box-shadow:0 0 60px 20px rgba(255,190,215,.35),0 0 140px 60px rgba(255,120,170,.2); animation:glow 6s ease-in-out infinite; }
+  @keyframes glow{ 50%{ box-shadow:0 0 80px 30px rgba(255,190,215,.5),0 0 180px 80px rgba(255,120,170,.3); } }
+  #stars i{ position:absolute; width:var(--s); height:var(--s); background:#fff; border-radius:50%; animation:twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle{ 0%,100%{opacity:.15;} 50%{opacity:1;} }
+  #bg .hills{ position:absolute; bottom:0; left:0; width:100%; height:28%; }
+  .heart{ position:absolute; bottom:-40px; color:rgba(255,120,165,.6); animation:rise linear forwards; will-change:transform,opacity; }
+  @keyframes rise{ 0%{transform:translate(0,0) rotate(0); opacity:0;} 10%{opacity:.85;} 100%{transform:translate(var(--sway),-110vh) rotate(25deg); opacity:0;} }
+  #landing,#chatScreen{ position:relative; z-index:1; }
+  #landing{ background:rgba(26,8,34,.55); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--line); border-radius:18px; margin:16px; box-shadow:0 20px 80px rgba(0,0,0,.4); }
+  .brand::before{ content:"♥ "; display:inline-block; animation:beat 1.4s infinite; }
+  @keyframes beat{ 0%,100%{transform:scale(1);} 20%{transform:scale(1.35);} 40%{transform:scale(1);} 60%{transform:scale(1.2);} }
+  h1{ font-style:italic; }
+  .field input{ border-radius:10px; }
+  #enterBtn{ border-radius:24px; background:linear-gradient(135deg,#ff6b9a,#d63a7c); color:#fff; }
+  #chatScreen{ background:rgba(28,10,38,.68); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); }
+  #chatHeader,#inputBar,#replyBar{ background:rgba(20,6,28,.45); }
+  .msg{ border-radius:16px; }
+  .msg.mine{ background:linear-gradient(135deg,#d63a7c,#8f2f86); border-bottom-right-radius:4px; }
+  .msg.theirs{ background:rgba(255,255,255,.11); border-bottom-left-radius:4px; }
+  .msg.system{ border-radius:0; background:none; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(12px) scale(.95);} to{opacity:1; transform:translateY(0) scale(1);} }
+  #msgInput{ border-radius:20px; padding:11px 16px; }
+  #emojiBtn{ border-radius:50%; }
+  #sendBtn{ border-radius:22px; background:linear-gradient(135deg,#ff6b9a,#d63a7c); color:#fff; }
+  #sendBtn:active{ transform:scale(.92); }
+  #emojiPanel{ border-radius:14px; }
+  #emojiPanel button{ transition:transform .15s; }
+  #emojiPanel button:hover{ transform:scale(1.35); }
+  .msg .acts{ flex-wrap:wrap; }
+  .msg .acts button{ border-radius:14px; transition:transform .15s; }
+  .msg .acts button:hover{ transform:scale(1.25); }
+  @media (hover:hover){ .msg:hover .acts{ display:flex; } }
+  .msg .reacts span{ font-size:13px; }
+  .msg .reacts span.pop{ animation:pop .45s cubic-bezier(.3,1.8,.5,1); }
+  @keyframes pop{ 0%{transform:scale(.3);} 100%{transform:scale(1);} }
+  .msg .txt.bigemoji{ font-size:34px; line-height:1.2; font-style:normal; animation:bounce 1s ease-out; }
+  @keyframes bounce{ 0%{transform:scale(.3);} 40%{transform:scale(1.3);} 65%{transform:scale(.9);} 100%{transform:scale(1);} }
+  #fx{ position:fixed; inset:0; pointer-events:none; z-index:50; overflow:hidden; }
+  .burst{ position:absolute; animation:floatUp 1.5s ease-out forwards; opacity:0; }
+  @keyframes floatUp{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(.4); }
+    15%{ opacity:1; }
+    100%{ opacity:0; transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--rot)) scale(1.3); }
+  }
+  @media (min-width:601px){
+    #chatScreen{ max-width:760px; height:92dvh; max-height:920px; border-radius:18px; box-shadow:0 20px 80px rgba(0,0,0,.5); }
+    .msg{ max-width:70%; }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms !important; animation-iteration-count:1 !important; } }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:3px; }
+
+  /* ---------- Mobile: full-bleed ---------- */
+  @media (max-width: 600px){
+    body{ align-items:stretch; justify-content:stretch; }
+    #landing{ margin:auto; }
+    #chatScreen{
+      max-width:100%;
+      max-height:100dvh;
+      height:100dvh;
+      border-radius:0;
+      border:none;
+    }
+    .msg{ max-width:85%; }
+  }
+</style>
+</head>
+<body>
+<div id="bg">
+  <div class="moon"></div>
+  <div id="stars"></div>
+  <svg class="hills" viewBox="0 0 1440 320" preserveAspectRatio="none"><path fill="#2a0c33" fill-opacity=".85" d="M0,224L120,208C240,192,480,160,720,176C960,192,1200,256,1440,240L1440,320L0,320Z"/><path fill="#16061f" d="M0,288L180,272C360,256,720,224,1080,240C1260,248,1350,268,1440,280L1440,320L0,320Z"/></svg>
+  <div id="hearts"></div>
+</div>
+<div id="fx"></div>
+
+<!-- ============ LANDING SCREEN ============ -->
+<div id="landing">
+  <div class="brand">Wire</div>
+  <h1>A private line</h1>
+  <div class="sub">No sign-up. Give the same room code to one other person — only the two of you who know it can read what's said.</div>
+
+  <div class="field">
+    <label for="nameInput">Your name</label>
+    <input id="nameInput" type="text" maxlength="24" placeholder="e.g. Rahul" autocomplete="off" />
+  </div>
+
+  <div class="field">
+    <label for="roomInput">Room code</label>
+    <input id="roomInput" type="text" maxlength="40" placeholder="e.g. raj-and-priya-2026" autocomplete="off" />
+    <div class="hint">Make one up and share it privately with the other person — via WhatsApp, in person, however. Anyone who has this exact code can enter this line.</div>
+  </div>
+
+  <button id="enterBtn">Open the line</button>
+  <div id="landingError"></div>
+</div>
+
+<!-- ============ CHAT SCREEN ============ -->
+<div id="chatScreen">
+  <div id="chatHeader">
+    <div class="roomInfo">
+      <span class="roomLabel">Room</span>
+      <span class="roomCode" id="roomCodeText"></span>
+      <span id="peopleLine"><span class="statusDot off" id="statusDot"></span><span id="peopleText">Connecting...</span></span>
+    </div>
+    <button id="leaveBtn">Leave</button>
+  </div>
+  <div id="messages"></div>
+  <div id="typingLine"></div>
+  <div id="replyBar"><span id="replyText"></span><button id="replyCancel" type="button">✕</button></div>
+  <div id="inputBar">
+    <div id="emojiPanel"></div>
+    <button id="emojiBtn" type="button">😊</button>
+    <textarea id="msgInput" rows="1" placeholder="Type a message..." autocomplete="off"></textarea>
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat build — simplest for plain HTML, no build tools needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+  // ---------- YOUR FIREBASE CONFIG ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyCXO9xMAiXkPOUopriTDdOH-wDwe40KNKw",
+    authDomain: "mera-chatroom.firebaseapp.com",
+    databaseURL: "https://mera-chatroom-default-rtdb.firebaseio.com",
+    projectId: "mera-chatroom",
+    storageBucket: "mera-chatroom.firebasestorage.app",
+    messagingSenderId: "994909315265",
+    appId: "1:994909315265:web:0344b9a40e4ce8f7f47440"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // ---------- State ----------
+  let myName = "";
+  let myKey = "";
+  let roomCode = "";
+  let messagesRef = null;
+  let presenceRef = null;
+  let typingRef = null;
+  let typingTimer = null;
+  const ownMessageEls = {}; // msgId -> { el, seenTag } — only for messages I sent (to update "Seen")
+
+  // ---------- Helpers ----------
+  function slugifyRoom(raw){
+    return raw.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-_]/g, "");
+  }
+
+  function slugifyKey(raw){
+    // Firebase keys cannot contain . # $ [ ] / — sanitize the name into a safe key
+    return raw.trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, "_") || "user";
+  }
+
+  // ---------- Landing screen logic ----------
+  const nameInput = document.getElementById("nameInput");
+  const roomInput = document.getElementById("roomInput");
+  const enterBtn = document.getElementById("enterBtn");
+  const landingError = document.getElementById("landingError");
+
+  function tryEnter(){
+    const name = nameInput.value.trim();
+    const room = slugifyRoom(roomInput.value);
+    landingError.textContent = "";
+
+    if(!name){
+      landingError.textContent = "Apna naam daalein.";
+      return;
+    }
+    if(!room){
+      landingError.textContent = "Room code daalein.";
+      return;
+    }
+
+    myName = name;
+    myKey = slugifyKey(name);
+    roomCode = room;
+    enterChat();
+  }
+
+  enterBtn.addEventListener("click", tryEnter);
+  nameInput.addEventListener("keydown", (e) => { if(e.key === "Enter") roomInput.focus(); });
+  roomInput.addEventListener("keydown", (e) => { if(e.key === "Enter") tryEnter(); });
+
+  // ---------- Chat screen elements ----------
+  const landing = document.getElementById("landing");
+  const chatScreen = document.getElementById("chatScreen");
+  const roomCodeText = document.getElementById("roomCodeText");
+  const peopleText = document.getElementById("peopleText");
+  const statusDot = document.getElementById("statusDot");
+  const messagesEl = document.getElementById("messages");
+  const typingLine = document.getElementById("typingLine");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const leaveBtn = document.getElementById("leaveBtn");
+  const emojiBtn = document.getElementById("emojiBtn");
+  const emojiPanel = document.getElementById("emojiPanel");
+
+  const EMOJIS = ["😀","😂","😍","😘","😅","😊","😉","😎","🤔","😢","😭","😡","👍","👎","🙏","👋","❤️","🔥","🎉","✅","😴","🥳","😳","🤗","💀","😇","😜","🙌","💯","👀"];
+
+  function buildEmojiPanel(){
+    emojiPanel.innerHTML = "";
+    EMOJIS.forEach(e => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = e;
+      b.addEventListener("click", () => {
+        msgInput.value += e;
+        burst(b, e, 4);
+        autoGrow();
+        msgInput.focus();
+      });
+      emojiPanel.appendChild(b);
+    });
+  }
+  buildEmojiPanel();
+
+  emojiBtn.addEventListener("click", () => {
+    emojiPanel.classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    if(!emojiPanel.contains(e.target) && e.target !== emojiBtn){
+      emojiPanel.classList.remove("open");
+    }
+  });
+
+  function enterChat(){
+    landing.style.display = "none";
+    chatScreen.style.display = "flex";
+    roomCodeText.textContent = roomCode;
+    messagesEl.innerHTML = "";
+    typingLine.textContent = "";
+
+    const roomBase = "rooms/" + roomCode;
+    messagesRef = db.ref(roomBase + "/messages");
+    presenceRef = db.ref(roomBase + "/presence/" + myKey);
+    typingRef = db.ref(roomBase + "/typing/" + myKey);
+    const allPresenceRef = db.ref(roomBase + "/presence");
+    const allTypingRef = db.ref(roomBase + "/typing");
+
+    // ----- Presence: mark myself online, auto-remove when I disconnect -----
+    presenceRef.onDisconnect().remove();
+    presenceRef.set({ name: myName, ts: firebase.database.ServerValue.TIMESTAMP });
+    typingRef.onDisconnect().remove();
+
+    // ----- Listen for who else is connected -----
+    allPresenceRef.on("value", (snapshot) => {
+      const people = [];
+      snapshot.forEach(child => {
+        const val = child.val();
+        if(val && val.name) people.push(val.name);
+      });
+      renderPeople(people);
+    });
+
+    // ----- Listen for typing from the other person -----
+    allTypingRef.on("value", (snapshot) => {
+      let othersTyping = [];
+      snapshot.forEach(child => {
+        if(child.key !== myKey && child.val() && child.val().typing){
+          othersTyping.push(child.val().name);
+        }
+      });
+      typingLine.textContent = "";
+      if(othersTyping.length){
+        typingLine.appendChild(document.createTextNode("✍️ " + othersTyping.join(", ") + (othersTyping.length > 1 ? " are" : " is") + " typing "));
+        const d = document.createElement("span"); d.className = "dots";
+        d.innerHTML = "<span>•</span><span>•</span><span>•</span>";
+        typingLine.appendChild(d);
+      }
+    });
+
+    // ----- Listen for messages -----
+    messagesRef.on("child_added", (snapshot) => {
+      renderMessage(snapshot.key, snapshot.val());
+    });
+
+    // ----- Listen for seen updates on my own messages -----
+    messagesRef.on("child_changed", (snapshot) => {
+      updateSeenTag(snapshot.key, snapshot.val());
+    });
+
+    addSystemLine("Line jud gayi. Ho sakta hai doosra insaan abhi na ho — message chhod dijiye.");
+    msgInput.focus();
+  }
+
+  function renderPeople(people){
+    if(people.length <= 1){
+      statusDot.classList.add("off");
+      peopleText.textContent = "Waiting for someone to join...";
+    } else {
+      statusDot.classList.remove("off");
+      peopleText.textContent = people.join(", ") + " online";
+    }
+  }
+
+  // ---------- Messages: render / reply / react / delete ----------
+  const msgEls = {};   // msgId -> { el, msg }
+  let replyTo = null;
+  const REACTS = ["❤️","😂","😍","🔥","👍","😢"];
+
+  function previewOf(m){
+    if(m.deleted) return "Deleted message";
+    return (m.text || "").slice(0, 60);
+  }
+
+  function renderMessage(id, msg){
+    const div = document.createElement("div");
+    msgEls[id] = { el: div, msg };
+    div.addEventListener("click", (e) => {
+      if(e.target.closest(".acts")) return;
+      div.classList.toggle("sel");
+    });
+    fill(id, msg);
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if(!msg.deleted && isEmojiOnly(msg.text) && (typeof msg.timestamp !== "number" || msg.timestamp > Date.now() - 6000)){
+      burst(div, firstEmoji(msg.text), 8);
+    }
+    markSeen(id, msg);
+  }
+
+  function markSeen(id, msg){
+    if(msg.name === myName || msg.deleted) return;
+    if(document.visibilityState !== "visible") return;
+    if(msg.seenBy && msg.seenBy[myKey]) return;
+    messagesRef.child(id).child("seenBy").child(myKey).set(firebase.database.ServerValue.TIMESTAMP);
+  }
+  function markAllSeen(){
+    if(!messagesRef) return;
+    for(const id in msgEls) markSeen(id, msgEls[id].msg);
+  }
+  document.addEventListener("visibilitychange", markAllSeen);
+  window.addEventListener("focus", markAllSeen);
+
+  function hhmm(ts){
+    if(!ts || typeof ts !== "number") return "";
+    return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  function mk(tag, cls, text){
+    const n = document.createElement(tag);
+    if(cls) n.className = cls;
+    if(text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  function fill(id, msg){
+    const entry = msgEls[id]; entry.msg = msg;
+    const el = entry.el;
+    const isMine = msg.name === myName;
+    const sel = el.classList.contains("sel");
+    el.className = "msg " + (isMine ? "mine" : "theirs") + (sel ? " sel" : "");
+    el.innerHTML = "";
+    const metaEl = mk("div", "meta", msg.name);
+    metaEl.appendChild(mk("i", "", hhmm(msg.timestamp)));
+    el.appendChild(metaEl);
+
+    if(msg.replyTo && !msg.deleted){
+      const q = mk("div", "quote");
+      q.appendChild(mk("b", "", msg.replyTo.name));
+      q.appendChild(document.createTextNode(msg.replyTo.text));
+      el.appendChild(q);
+    }
+
+    if(msg.deleted){
+      el.appendChild(mk("div", "gone", "🚫 This message was deleted"));
+    } else {
+      const tx = mk("div", "txt", msg.text);
+      if(isEmojiOnly(msg.text)) tx.classList.add("bigemoji");
+      el.appendChild(tx);
+    }
+
+    // reactions
+    const prevTotals = entry.totals || {}, newTotals = {};
+    let grewEmo = null;
+    if(msg.reactions && !msg.deleted){
+      const row = mk("div", "reacts");
+      for(const emo in msg.reactions){
+        const users = Object.keys(msg.reactions[emo] || {});
+        if(!users.length) continue;
+        newTotals[emo] = users.length;
+        const grew = entry.rendered && users.length > (prevTotals[emo] || 0);
+        if(grew) grewEmo = emo;
+        row.appendChild(mk("span", (users.includes(myKey) ? "me" : "") + (grew ? " pop" : ""), emo + " " + users.length));
+      }
+      if(row.children.length) el.appendChild(row);
+    }
+    entry.totals = newTotals;
+    const firstRender = !entry.rendered;
+    entry.rendered = true;
+    if(grewEmo && !firstRender) setTimeout(() => burst(el, grewEmo, 7), 0);
+
+    // action buttons (shown on tap)
+    if(!msg.deleted){
+      const acts = mk("div", "acts");
+      REACTS.forEach(emo => {
+        const b = mk("button", "", emo); b.type = "button";
+        b.addEventListener("click", () => toggleReact(id, emo));
+        acts.appendChild(b);
+      });
+      const rb = mk("button", "", "↩"); rb.type = "button";
+      rb.addEventListener("click", () => startReply(id));
+      acts.appendChild(rb);
+      if(isMine){
+        const db_ = mk("button", "", "🗑"); db_.type = "button";
+        db_.addEventListener("click", () => deleteMsg(id));
+        acts.appendChild(db_);
+      }
+      el.appendChild(acts);
+    }
+
+    if(isMine){
+      const other = msg.seenBy ? Object.keys(msg.seenBy).find(k => k !== myKey) : null;
+      const t = other ? hhmm(msg.seenBy[other]) : "";
+      el.appendChild(mk("div", "seenTag" + (other ? " seen" : ""), other ? "✓✓ Seen" + (t ? " · " + t : "") : "✓ Sent"));
+    }
+  }
+
+  function updateSeenTag(id, msg){
+    if(msgEls[id]) fill(id, msg);   // handles seen, reactions and deletes
+  }
+
+  function toggleReact(id, emo){
+    const ref = messagesRef.child(id).child("reactions").child(emo).child(myKey);
+    const has = msgEls[id].msg.reactions && msgEls[id].msg.reactions[emo] && msgEls[id].msg.reactions[emo][myKey];
+    if(has) ref.remove(); else ref.set(true);
+  }
+
+  function deleteMsg(id){
+    if(!confirm("Delete this message for everyone?")) return;
+    messagesRef.child(id).update({ deleted: true, text: "", data: null, replyTo: null, reactions: null });
+  }
+
+  function startReply(id){
+    const m = msgEls[id].msg;
+    replyTo = { name: m.name, text: previewOf(m) };
+    document.getElementById("replyText").textContent = "↩ " + m.name + ": " + replyTo.text;
+    document.getElementById("replyBar").classList.add("open");
+    msgInput.focus();
+  }
+  function clearReply(){
+    replyTo = null;
+    document.getElementById("replyBar").classList.remove("open");
+  }
+  document.getElementById("replyCancel").addEventListener("click", clearReply);
+
+  function addSystemLine(text){
+    const div = document.createElement("div");
+    div.className = "msg system";
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function pushMessage(extra){
+    if(!messagesRef) return;
+    const m = Object.assign({ name: myName, type: "text", timestamp: firebase.database.ServerValue.TIMESTAMP }, extra);
+    if(replyTo) m.replyTo = replyTo;
+    messagesRef.push(m);
+    clearReply();
+    emojiPanel.classList.remove("open");
+    setTypingState(false);
+  }
+
+  function sendMessage(){
+    const text = msgInput.value.trim();
+    if(!text) return;
+    pushMessage({ text });
+    msgInput.value = "";
+    autoGrow();
+    msgInput.focus();
+  }
+
+  function setTypingState(isTyping){
+    if(!typingRef) return;
+    typingRef.set({ name: myName, typing: isTyping });
+  }
+
+  sendBtn.addEventListener("click", sendMessage);
+  const isTouch = window.matchMedia("(pointer: coarse)").matches;
+  msgInput.addEventListener("keydown", (e) => {
+    // Desktop: Enter sends, Shift+Enter = new line. Phone: Enter = new line, use Send button.
+    if(e.key === "Enter" && !e.shiftKey && !isTouch){ e.preventDefault(); sendMessage(); }
+  });
+  function autoGrow(){
+    msgInput.style.height = "auto";
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 130) + "px";
+  }
+  msgInput.addEventListener("input", autoGrow);
+
+  msgInput.addEventListener("input", () => {
+    setTypingState(true);
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => setTypingState(false), 1500);
+  });
+
+  function cleanupRoom(){
+    if(messagesRef) messagesRef.off();
+    if(presenceRef){ presenceRef.onDisconnect().cancel(); presenceRef.remove(); }
+    if(typingRef){ typingRef.onDisconnect().cancel(); typingRef.remove(); }
+    messagesRef = null;
+    presenceRef = null;
+    typingRef = null;
+    for(const k in msgEls) delete msgEls[k];
+    clearReply();
+  }
+
+  leaveBtn.addEventListener("click", () => {
+    cleanupRoom();
+    chatScreen.style.display = "none";
+    landing.style.display = "block";
+    roomInput.value = "";
+    landingError.textContent = "";
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if(presenceRef) presenceRef.remove();
+    if(typingRef) typingRef.remove();
+  });
+
+  // ---------- Love scene + emoji effects ----------
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const fxLayer = document.getElementById("fx");
+
+  function isEmojiOnly(t){
+    return !!t && t.length <= 24 && /^(?:\p{Extended_Pictographic}|\u200d|\ufe0f|\s)+$/u.test(t);
+  }
+  function firstEmoji(t){
+    const c = t.replace(/\s/g, "");
+    if(window.Intl && Intl.Segmenter) return [...new Intl.Segmenter().segment(c)][0].segment;
+    return Array.from(c)[0];
+  }
+  function burst(fromEl, emo, n){
+    if(reduceMotion || !fromEl) return;
+    const r = fromEl.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for(let i = 0; i < (n || 7); i++){
+      const sp = document.createElement("span");
+      sp.className = "burst"; sp.textContent = emo;
+      sp.style.left = cx + "px"; sp.style.top = cy + "px";
+      sp.style.fontSize = (18 + Math.random() * 18) + "px";
+      sp.style.animationDelay = (i * 50) + "ms";
+      sp.style.setProperty("--dx", (Math.random() * 160 - 80) + "px");
+      sp.style.setProperty("--dy", -(80 + Math.random() * 140) + "px");
+      sp.style.setProperty("--rot", (Math.random() * 60 - 30) + "deg");
+      fxLayer.appendChild(sp);
+      sp.addEventListener("animationend", () => sp.remove());
+    }
+  }
+
+  (function loveScene(){
+    const stars = document.getElementById("stars");
+    const count = window.innerWidth < 600 ? 35 : 70;
+    for(let i = 0; i < count; i++){
+      const d = document.createElement("i");
+      d.style.cssText = "left:" + Math.random() * 100 + "%;top:" + Math.random() * 65 + "%;--s:" + (1 + Math.random() * 2) + "px;animation-delay:" + Math.random() * 4 + "s;animation-duration:" + (2 + Math.random() * 3) + "s";
+      stars.appendChild(d);
+    }
+    if(reduceMotion) return;
+    const box = document.getElementById("hearts");
+    const glyphs = ["♥","♥","♡","💗","🌹","✨"];
+    function spawn(){
+      if(document.hidden || box.childElementCount > 22) return;
+      const h = document.createElement("span");
+      h.className = "heart";
+      h.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+      h.style.left = Math.random() * 100 + "%";
+      h.style.fontSize = (12 + Math.random() * 26) + "px";
+      h.style.animationDuration = (7 + Math.random() * 7) + "s";
+      h.style.setProperty("--sway", (Math.random() * 80 - 40) + "px");
+      box.appendChild(h);
+      h.addEventListener("animationend", () => h.remove());
+    }
+    setInterval(spawn, 650);
+    for(let i = 0; i < 8; i++) setTimeout(spawn, i * 200);
+  })();
+</script>
+</body>
+</html>
